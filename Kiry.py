@@ -130,6 +130,7 @@ def get_entry_info(entry):
 
 def chapter_selector():
     while True:
+        print("[ ", title, " ]")
         answer = input("Show (L)ist, (C)lose the script or select chapter to Download(l, c, " + first_chapter + "-" + lastest_chapter + "): ")
         if answer.isdecimal():
             if float(answer) >= float(first_chapter) and float(answer) <= float(lastest_chapter):
