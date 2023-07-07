@@ -197,7 +197,15 @@ def get_cover():
             file.write(chunk)
 
 def chapter_image_downloader(image_headers):
+    last_dl = False
+    files = os.listdir(tmp_dir + "/" + title + "/" + chapter_num)
+    if files:
+        last_dl = True
+        files.sort(reverse=True)
+        last_file = "{:01d}".format(int(files[0].split(".")[0]))
     for n, url in enumerate(image_urls):
+        if last_dl == True and n < int(last_file) - 1:
+            continue
         number = int(n + 1)
         fmt_number = "{:03d}".format(number)
         print("Downloading: " + url)
