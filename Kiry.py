@@ -85,7 +85,7 @@ def html_get(url):
     html = BeautifulSoup(result.text, "html.parser")
     return html
 
-def display_comic_list():
+def display_comic_list(html):
     print("Page: " + str(page_num))
     comic_list = html.find(class_="listupd").contents
     for num, comic_entry in enumerate(comic_list):
@@ -108,13 +108,13 @@ def title_selector(page_num):
             clear_terminal()
             url = base_url + str(page_num) + m_status  + m_type + m_order
             html = html_get(url)
-            display_comic_list()
+            display_comic_list(html)
         elif answer.lower() == "p":
             page_num = int(page_num) - 1
             clear_terminal()
             url = base_url + str(page_num) + m_status  + m_type + m_order
             html = html_get(url)
-            display_comic_list()
+            display_comic_list(html)
         elif answer.lower() == "c" or answer.lower() == "close" or answer.lower() == "cancel":
             clear_terminal()
             sys.exit(0)
@@ -248,7 +248,7 @@ url = base_url + str(page_num) + m_status  + m_type + m_order
 html = html_get(url)
 clear_terminal()
 
-comic_list = display_comic_list()
+comic_list = display_comic_list(html)
 title,comic_url,cover_url = title_selector(page_num)
 
 html = html_get(comic_url)
