@@ -97,31 +97,31 @@ def display_comic_list(html):
         if int(num) + 1 >= 50:
             return comic_list
 
-def title_selector(page_num):
+def title_selector(page_num, comic_list):
     while True:
         answer = input("\n\t[ (P)revious page  ] [ Page " + str(page_num) + " ] [   (N)ext page   ]\n\nSelect Entry or (C)lose the script(p, n, c, 1-50): ")
         if isinstance(answer, str) and answer.isdigit() and int(answer) >= 1 and int(answer) <= 50:
-            title,comic_url,cover_url = get_entry_info(answer)
+            title,comic_url,cover_url = get_entry_info(comic_list, answer)
             return title,comic_url,cover_url
         elif answer.lower() == "n":
             page_num = int(page_num) + 1
             clear_terminal()
             url = base_url + str(page_num) + m_status  + m_type + m_order
             html = html_get(url)
-            display_comic_list(html)
+            comic_list = display_comic_list(html)
         elif answer.lower() == "p":
             page_num = int(page_num) - 1
             clear_terminal()
             url = base_url + str(page_num) + m_status  + m_type + m_order
             html = html_get(url)
-            display_comic_list(html)
+            comic_list = display_comic_list(html)
         elif answer.lower() == "c" or answer.lower() == "close" or answer.lower() == "cancel":
             clear_terminal()
             sys.exit(0)
         else:
             print("Infalid input.")
 
-def get_entry_info(entry):
+def get_entry_info(comic_list, entry):
     entry = comic_list[int(entry ) - 1].next_sibling.find("a")
     title = entry["title"]
     comic_url = entry["href"]
@@ -250,7 +250,7 @@ html = html_get(url)
 clear_terminal()
 
 comic_list = display_comic_list(html)
-title,comic_url,cover_url = title_selector(page_num)
+title,comic_url,cover_url = title_selector(page_num, comic_list)
 
 html = html_get(comic_url)
 chapter_list,chapters,lastest_chapter,first_chapter = get_chapter_info()
