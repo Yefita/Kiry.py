@@ -275,7 +275,7 @@ while True:
 
     chapter_image_downloader(image_headers)
 
-    cbz_path = tmp_dir + "/" + title + "/" + "Chapter " + chapter_number + ".cbz"
+    cbz_path = tmp_dir + "/" + title + "/" + "Chapter " + chapter_num + ".cbz"
     make_cbz(chapter_directory, cbz_path)
 
     remove_dir()
