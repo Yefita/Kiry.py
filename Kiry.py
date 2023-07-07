@@ -85,8 +85,8 @@ def html_get(url):
     html = BeautifulSoup(result.text, "html.parser")
     return html
 
-def display_comic_list(html):
-    print("Page: " + str(page_num))
+def display_comic_list(html, page_num):
+    print("Page " + str(page_num))
     comic_list = html.find(class_="listupd").contents
     for num, comic_entry in enumerate(comic_list):
         comic_entry = comic_list[num].next_sibling
@@ -99,7 +99,7 @@ def display_comic_list(html):
 
 def title_selector(page_num, comic_list):
     while True:
-        answer = input("\n\t[ (P)revious page  ] [ Page " + str(page_num) + " ] [   (N)ext page   ]\n\nSelect Entry or (C)lose the script(p, n, c, 1-50): ")
+        answer = input("\n\t[ (P)revious page ]   [ Page " + str(page_num) + " ]   [ (N)ext page ]\n\nSelect Entry or (C)lose the script(p, n, c, 1-50): ")
         if isinstance(answer, str) and answer.isdigit() and int(answer) >= 1 and int(answer) <= 50:
             title,comic_url,cover_url = get_entry_info(comic_list, answer)
             return title,comic_url,cover_url
@@ -108,13 +108,13 @@ def title_selector(page_num, comic_list):
             clear_terminal()
             url = base_url + str(page_num) + m_status  + m_type + m_order
             html = html_get(url)
-            comic_list = display_comic_list(html)
+            comic_list = display_comic_list(html, page_num)
         elif answer.lower() == "p":
             page_num = int(page_num) - 1
             clear_terminal()
             url = base_url + str(page_num) + m_status  + m_type + m_order
             html = html_get(url)
-            comic_list = display_comic_list(html)
+            comic_list = display_comic_list(html, page_num)
         elif answer.lower() == "c" or answer.lower() == "close" or answer.lower() == "cancel":
             clear_terminal()
             sys.exit(0)
@@ -249,7 +249,7 @@ url = base_url + str(page_num) + m_status  + m_type + m_order
 html = html_get(url)
 clear_terminal()
 
-comic_list = display_comic_list(html)
+comic_list = display_comic_list(html, page_num)
 title,comic_url,cover_url = title_selector(page_num, comic_list)
 
 html = html_get(comic_url)
@@ -275,7 +275,7 @@ while True:
 
     chapter_image_downloader(image_headers)
 
-    cbz_path = chapter_directory + ".cbz"
+    cbz_path = tmp_dir + "/" + title + "/" + "Chapter " + chapter_number + ".cbz"
     make_cbz(chapter_directory, cbz_path)
 
     remove_dir()
