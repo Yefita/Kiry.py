@@ -2,18 +2,15 @@ from bs4 import BeautifulSoup
 import requests
 import sys
 import re
-import json
 import os
 import zipfile
 import shutil
-
-base_url = "https://kiryuu.id/manga/?page="
-headers={"User-Agent": "Mozilla/5.0 (Linux; Android 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Mobile Safari/537.36"}
-tmp_dir = "/storage/79DE-B4B5/Scraper/Kiryuu"
+import configparser
+import urllib.parse
 
 def status_get():
     while True:
-        answer = input("Comics status(Default is All.).\n1. All.\n2. Ongoing.\n3. Completed.\n4. Hiatus.\n\nSelect comics status or (C)lose the script(c,1-4): ")
+        answer = input("Comics status(Default is All.).\n1. All.\n2. Ongoing.\n3. Completed.\n4. Hiatus.\n\nSelect comics status or (C)lose the script(c, 1-4): ")
         if answer == "1" or answer.lower() == "":
             m_status = ""
             return m_status
@@ -34,7 +31,7 @@ def status_get():
 
 def type_get():
     while True:
-        answer = input("Comics type(Novels is not supported, Default is All).\n1. All.\n2. Manga(Japanese).\n3. Manhua(Chinese).\n4. Manhwa(Korean).\n5. Others.\n\nSelect comics type or (C)lose the script(c,1-5): ")
+        answer = input("Comics type(Novels is not supported, Default is All).\n1. All.\n2. Manga(Japanese).\n3. Manhua(Chinese).\n4. Manhwa(Korean).\n5. Others.\n\nSelect comics type or (C)lose the script(c, 1-5): ")
         if answer == "1" or answer.lower() == "":
             m_type = ""
             return m_type
@@ -58,7 +55,7 @@ def type_get():
 
 def sort_get():
     while True:
-        answer = input("Listing order(Default is New Update).\n1. Website Default.\n2. Alphabetical A-Z.\n3. Reverse-Alphabetical Z-A.\n4. New Update.\n5. Date Added.\n6. Popular.\n\nSelect listing order or (C)lose the script(c,1-6): ")
+        answer = input("Listing order(Default is New Update).\n1. Website Default.\n2. Alphabetical A-Z.\n3. Reverse-Alphabetical Z-A.\n4. New Update.\n5. Date Added.\n6. Popular.\n\nSelect listing order or (C)lose the script(c, 1-6): ")
         if answer == "1":
             m_order = ""
             return m_order
@@ -100,12 +97,64 @@ def display_comic_list():
         if int(num) + 1 >= 50:
             return comic_list
 
+def title_selector(page_num):
+    while True:
+        answer = input("\n\t[ (P)revious page  ] [ Page " + str(page_num) + " ] [   (N)ext page   ]\n\nSelect Entry or (C)lose the script(p, n, c, 1-50): ")
+        if isinstance(answer, str) and answer.isdigit() and int(answer) >= 1 and int(answer) <= 50:
+            title,comic_url,cover_url = get_entry_info(answer)
+            return title,comic_url,cover_url
+        elif answer.lower() == "n":
+            page_num = int(page_num) + 1
+            clear_terminal()
+            url = base_url + str(page_num) + m_status  + m_type + m_order
+            html = html_get(url)
+            display_comic_list()
+        elif answer.lower() == "p":
+            page_num = int(page_num) - 1
+            clear_terminal()
+            url = base_url + str(page_num) + m_status  + m_type + m_order
+            html = html_get(url)
+            display_comic_list()
+        elif answer.lower() == "c" or answer.lower() == "close" or answer.lower() == "cancel":
+            clear_terminal()
+            sys.exit(0)
+        else:
+            print("Infalid input.")
+
 def get_entry_info(entry):
     entry = comic_list[int(entry ) - 1].next_sibling.find("a")
     title = entry["title"]
     comic_url = entry["href"]
     cover_url = entry.find("img")["src"]
     return title,comic_url,cover_url
+
+def chapter_selector():
+    while True:
+        answer = input("Show (L)ist, (C)lose the script or select chapter to Download(l, c, " + first_chapter + "-" + lastest_chapter + "): ")
+        if answer.isdecimal():
+            if float(answer) >= float(first_chapter) and float(answer) <= float(lastest_chapter):
+                if answer.isdigit():
+                    answer = f"{int(answer):02d}"
+                chapter_url = chapter_list.find("li", {"data-num": answer}).find('a', href=True)['href']
+                chapter_num = str(answer)
+                return chapter_url,chapter_num
+            else:
+                print("Invalid input. Number is out of range")
+        else:
+            if answer.lower() == "l" or answer.lower() == "list":
+                clear_terminal()
+                for num, chapter in enumerate(chapters):
+                    chapter_num = chapter.find(class_="chapternum").string
+                    if num % 5:
+                        print(chapter_num, end="\t")
+                    else:
+                        print(chapter_num, end="\n")
+                print()
+            elif answer.lower() == "c" or answer.lower() == "close":
+                clear_terminal()
+                sys.exit(0)
+            else:
+                print("Infalid input.")
 
 def get_chapter_info():
     chapter_list = html.find(class_="eplister")
@@ -114,7 +163,7 @@ def get_chapter_info():
     first_chapter = chapter_list.find(class_="first-chapter")["data-num"]
     return chapter_list,chapters,lastest_chapter,first_chapter
 
-def get_image_urls():
+def get_image_urls(html):
     script_tag = html.find('script', string=lambda x: 'ts_reader.run' in str(x))
     script_content = script_tag.string
     match = re.search(r'"source":"Server 1","images":\["(.*?)"\]', script_content)
@@ -126,27 +175,37 @@ def get_image_urls():
             ts_reader_content = match.group(1)
         else:
             print("Can't find the links.")
-
-    parsed_content = json.loads(ts_reader_content)
-    sources = parsed_content.get('sources', [])
-    image_urls = [image_url for source in sources for image_url in source.get('images', [])]
+    ts_reader_content = urllib.parse.unquote(ts_reader_content.replace("\\", ""))
+    image_urls = ts_reader_content.split('","')
     return image_urls
 
-def create_dir():
-    if not os.path.exists(chapter_directory):
-        os.makedirs(chapter_directory, exist_ok=True)
+def create_dir(directory):
+    if not os.path.exists(directory):
+        os.makedirs(directory, exist_ok=True)
 
-def chapter_image_downloader():
+def get_cover():
+    cover_directory = tmp_dir + "/" + title
+    create_dir(cover_directory)
+    response = requests.get(cover_url, stream=True, headers=image_headers)
+    response.raise_for_status()
+
+    filename = os.path.basename(cover_url)
+    new_filename = "cover" + os.path.splitext(filename)[1]
+    with open(os.path.join(tmp_dir, title, new_filename), "wb") as file:
+        for chunk in response.iter_content(chunk_size=8192):
+            file.write(chunk)
+
+def chapter_image_downloader(image_headers):
     for n, url in enumerate(image_urls):
         number = int(n + 1)
         fmt_number = "{:03d}".format(number)
         print("Downloading: " + url)
-        response = requests.get(url, stream=True, headers=headers)
+        response = requests.get(url, stream=True, headers=image_headers)
         response.raise_for_status()
 
         filename = os.path.basename(url)
         new_filename = str(fmt_number) + os.path.splitext(filename)[1]
-        with open(os.path.join(tmp_dir, title, answer, new_filename), "wb") as file:
+        with open(os.path.join(tmp_dir, title, chapter_num, new_filename), "wb") as file:
             for chunk in response.iter_content(chunk_size=8192):
                 file.write(chunk)
 
@@ -163,74 +222,60 @@ def remove_dir():
 
 def clear_terminal():
     os.system('cls' if os.name == 'nt' else 'clear')
+    #print("Terminal clear here")
 
+config = configparser.ConfigParser()
+config.read('config.ini')
 clear_terminal()
 m_status = status_get()
 clear_terminal()
 m_type = type_get()
 clear_terminal()
 m_order = sort_get()
+
+base_url = config.get("Settings", "base_url")
+user_agent = config.get("Settings", "user_agent")
+tmp_dir = config.get("Settings", "tmp_dir")
 page_num = "1"
+headers = { 
+           'User-Agent': user_agent,
+           'Accept-Language': 'en-US,en;q=0.9',
+           'Referer': "https://google.co.id/"
+}
+
 url = base_url + str(page_num) + m_status  + m_type + m_order
+
 html = html_get(url)
 clear_terminal()
+
 comic_list = display_comic_list()
-while True:
-    answer = input("\t(P)revious page  [ Page " + str(page_num) + " ]  (N)ext page\n\nSelect Entry or (C)lose the script(p,n,c,1-50): ")
-    if isinstance(answer, str) and answer.isdigit() and int(answer) >= 1 and int(answer) <= 50:
-        title,comic_url,cover_url = get_entry_info(answer)
-        break
-    elif answer.lower() == "n":
-        page_num = int(page_num) + 1
-        clear_terminal()
-        url = base_url + str(page_num) + m_status  + m_type + m_order
-        html = html_get(url)
-        display_comic_list()
-    elif answer.lower() == "p":
-        page_num = int(page_num) - 1
-        clear_terminal()
-        url = base_url + str(page_num) + m_status  + m_type + m_order
-        html = html_get(url)
-        display_comic_list()
-    elif answer.lower() == "c" or answer.lower() == "close" or answer.lower() == "cancel":
-        clear_terminal()
-        sys.exit(0)
-    else:
-        print("Infalid input.")
+title,comic_url,cover_url = title_selector(page_num)
 
 html = html_get(comic_url)
 chapter_list,chapters,lastest_chapter,first_chapter = get_chapter_info()
 clear_terminal()
 
 while True:
-    print(title)
-    answer = input("Select chapter to Download, (L)ist it or (C)lose the script(l,c," + first_chapter + "-" + lastest_chapter + ")")
-    if isinstance(answer, str) and answer.isdigit() and int(answer) >= int(first_chapter) and int(answer) <= int(lastest_chapter):
-        answer = "{:02d}".format(int(answer))
-        chapter_url = chapter_list.find("li", {"data-num": answer}).find('a', href=True)['href']
-        print(chapter_url)
-        html = html_get(chapter_url)
-        image_urls = get_image_urls()
-        chapter_directory = tmp_dir + "/" + title + "/" + answer
-        create_dir()
-        chapter_image_downloader()
-        cbz_path = chapter_directory + ".cbz"
-        make_cbz(chapter_directory, cbz_path)
-        remove_dir()
-        clear_terminal()
-        print("Chapter " + answer + " Downloaded.")
+    chapter_url,chapter_num = chapter_selector()
+    html = html_get(chapter_url)
 
-    elif answer.lower() == "l" or answer.lower() == "list":
-        clear_terminal()
-        for num, chapter in enumerate(chapters):
-            chapter_num = chapter.find(class_="chapternum").string
-            if num % 5:
-                print(chapter_num, end="\n")
-            else:
-                print(chapter_num, end="\t")
-        print("\n\n")
-    elif answer.lower() == "c" or answer.lower() == "close":
-        clear_terminal()
-        sys.exit(0)
-    else:
-        print("Invalid input.")
+    print(chapter_url)
+    image_headers = {
+        'User-Agent': user_agent,
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Referer': "https://kiryuu.id"
+    }
+    image_urls = get_image_urls(html)
+
+    chapter_directory = tmp_dir + "/" + title + "/" + chapter_num
+    create_dir(chapter_directory)
+    if not os.path.exists(tmp_dir + "/" + title + r"cover*"):
+        get_cover()
+
+    chapter_image_downloader(image_headers)
+
+    cbz_path = chapter_directory + ".cbz"
+    make_cbz(chapter_directory, cbz_path)
+
+    remove_dir()
+    clear_terminal()
