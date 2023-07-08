@@ -134,11 +134,21 @@ def chapter_selector():
         answer = input("Show (L)ist, (C)lose the script or select chapter to Download(l, c, " + first_chapter + "-" + lastest_chapter + "): ")
         if answer.isdecimal():
             if float(answer) >= float(first_chapter) and float(answer) <= float(lastest_chapter):
-                if answer.isdigit():
-                    answer = f"{int(answer):02d}"
-                chapter_url = chapter_list.find("li", {"data-num": answer}).find('a', href=True)['href']
-                chapter_num = str(answer)
-                return chapter_url,chapter_num
+                parts = answer.split('.')
+                if "." in answer:
+                    chapter_num = parts[0].zfill(2) + '.' + parts[1]
+                else:
+                    chapter_num = parts[0].zfill(2)
+                chapter_url = chapter_list.find("li", {"data-num": chapter_num})
+                chapter_num_2d = chapter_num
+                if str(chapter_url) == "None":
+                    if '.' in answer:
+                        chapter_num = str(float(answer))
+                    else:
+                        chapter_num = str(int(answer))
+                    chapter_url = chapter_list.find("li", {"data-num": chapter_num})
+                chapter_url = chapter_url.find('a', href=True)['href']
+                return chapter_url,chapter_num,chapter_num_2d
             else:
                 print("Invalid input. Number is out of range")
         else:
@@ -201,7 +211,7 @@ def get_cover():
 
 def chapter_image_downloader(image_headers):
     last_dl = False
-    files = os.listdir(tmp_dir + "/" + title + "/" + chapter_num)
+    files = os.listdir(tmp_dir + "/" + title + "/" + chapter_num_2d)
     if files:
         last_dl = True
         files.sort(reverse=True)
@@ -222,7 +232,7 @@ def chapter_image_downloader(image_headers):
         response = requests.get(url, stream=True, headers=image_headers)
         response.raise_for_status()
 
-        with open(os.path.join(tmp_dir, title, chapter_num, new_filename), "wb") as file:
+        with open(os.path.join(tmp_dir, title, chapter_num_2d, new_filename), "wb") as file:
             for chunk in response.iter_content(chunk_size=8192):
                 file.write(chunk)
     print("\rAll image Downloaded.")
@@ -276,11 +286,11 @@ chapter_list,chapters,lastest_chapter,first_chapter = get_chapter_info()
 clear_terminal()
 
 while True:
-    chapter_url,chapter_num = chapter_selector()
+    chapter_url,chapter_num,chapter_num_2d = chapter_selector()
     html = html_get(chapter_url)
 
     clear_terminal()
-    print("\t[ " +title + " Chapter " + chapter_num + " ]")
+    print("\t[ " +title + " Chapter " + chapter_num_2d + " ]")
     print(chapter_url)
     image_headers = {
         'User-Agent': user_agent,
@@ -289,13 +299,13 @@ while True:
     }
     image_urls = get_image_urls(html)
 
-    chapter_directory = tmp_dir + "/" + title + "/" + chapter_num
+    chapter_directory = tmp_dir + "/" + title + "/" + chapter_num_2d
     create_dir(chapter_directory)
     get_cover()
 
     chapter_image_downloader(image_headers)
 
-    cbz_path = tmp_dir + "/" + title + "/" + "Chapter " + chapter_num + ".cbz"
+    cbz_path = tmp_dir + "/" + title + "/" + "Chapter " + chapter_num_2d + ".cbz"
     make_cbz(chapter_directory, cbz_path)
 
     remove_dir()
