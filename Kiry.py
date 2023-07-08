@@ -165,6 +165,7 @@ def get_chapter_info():
     return chapter_list,chapters,lastest_chapter,first_chapter
 
 def get_image_urls(html):
+    print("Getting image url..")
     script_tag = html.find('script', string=lambda x: 'ts_reader.run' in str(x))
     script_content = script_tag.string
     match = re.search(r'"source":"Server 1","images":\["(.*?)"\]', script_content)
@@ -175,18 +176,20 @@ def get_image_urls(html):
         if match:
             ts_reader_content = match.group(1)
         else:
-            print("Can't find the links.")
+            print("\rCan't find the image url.")
     ts_reader_content = urllib.parse.unquote(ts_reader_content.replace("\\", ""))
     image_urls = ts_reader_content.split('","')
+    print("\r", end="")
     return image_urls
 
 def create_dir(directory):
     if not os.path.exists(directory):
+        print("Creating " + directory)
         os.makedirs(directory, exist_ok=True)
 
+
 def get_cover():
-    cover_directory = tmp_dir + "/" + title
-    create_dir(cover_directory)
+    print("Downloading Cover..")
     response = requests.get(cover_url, stream=True, headers=image_headers)
     response.raise_for_status()
 
@@ -203,22 +206,29 @@ def chapter_image_downloader(image_headers):
         last_dl = True
         files.sort(reverse=True)
         last_file = "{:01d}".format(int(files[0].split(".")[0]))
+    dl_num = 0
     for n, url in enumerate(image_urls):
         if last_dl == True and n < int(last_file) - 1:
             continue
         number = int(n + 1)
         fmt_number = "{:03d}".format(number)
-        print("Downloading: " + url)
+        filename = os.path.basename(url)
+        new_filename = str(fmt_number) + os.path.splitext(filename)[1]
+        if dl_num <= 0:
+            print("Downloading image " + new_filename)
+            dl_num = dl_num + 1
+        else:
+            print("\rDownloading image " + new_filename)
         response = requests.get(url, stream=True, headers=image_headers)
         response.raise_for_status()
 
-        filename = os.path.basename(url)
-        new_filename = str(fmt_number) + os.path.splitext(filename)[1]
         with open(os.path.join(tmp_dir, title, chapter_num, new_filename), "wb") as file:
             for chunk in response.iter_content(chunk_size=8192):
                 file.write(chunk)
+    print("\rAll image Downloaded.")
 
 def make_cbz(chapter_directory, cbz_path):
+    print("Generating .cbz archive..")
     with zipfile.ZipFile(cbz_path, 'w', compression=zipfile.ZIP_DEFLATED) as cbz:
         for root, _, files in os.walk(chapter_directory):
             for file in files:
@@ -226,6 +236,7 @@ def make_cbz(chapter_directory, cbz_path):
                 cbz.write(file_path, arcname=os.path.relpath(file_path, chapter_directory))
 
 def remove_dir():
+    print("Removing chapter image directory..")
     if os.path.exists(chapter_directory):
         shutil.rmtree(chapter_directory, ignore_errors=True)
 
@@ -268,6 +279,8 @@ while True:
     chapter_url,chapter_num = chapter_selector()
     html = html_get(chapter_url)
 
+    clear_terminal()
+    print("\t[ " +title + " Chapter " + chapter_num + " ]")
     print(chapter_url)
     image_headers = {
         'User-Agent': user_agent,
@@ -278,8 +291,7 @@ while True:
 
     chapter_directory = tmp_dir + "/" + title + "/" + chapter_num
     create_dir(chapter_directory)
-    if not os.path.exists(tmp_dir + "/" + title + r"cover*"):
-        get_cover()
+    get_cover()
 
     chapter_image_downloader(image_headers)
 
