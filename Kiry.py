@@ -295,7 +295,7 @@ while True:
     image_headers = {
         'User-Agent': user_agent,
         'Accept-Language': 'en-US,en;q=0.9',
-        'Referer': "https://kiryuu.id"
+        'Referer': "https://kiryuu.id/"
     }
     image_urls = get_image_urls(html)
 
