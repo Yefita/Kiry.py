@@ -132,7 +132,12 @@ def chapter_selector():
     while True:
         print("[ ", title, " ]")
         answer = input("Show (L)ist, (C)lose the script or select chapter to Download(l, c, " + first_chapter + "-" + lastest_chapter + "): ")
-        if answer.isdecimal():
+        splited_decimal = False
+        if "." in answer:
+            splited_answer = answer.split(sep=".")
+            if str(splited_answer[0]).isdigit() and str(splited_answer[1]).isdigit():
+                splited_decimal = True
+        if answer.isdigit() or splited_decimal == True:
             if float(answer) >= float(first_chapter) and float(answer) <= float(lastest_chapter):
                 parts = answer.split('.')
                 if "." in answer:
