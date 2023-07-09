@@ -152,6 +152,10 @@ def chapter_selector():
                     else:
                         chapter_num = str(int(answer))
                     chapter_url = chapter_list.find("li", {"data-num": chapter_num})
+                    if str(chapter_url) == "None":
+                        clear_terminal()
+                        print("Can't find Chapter " + answer + ". Check if it in (L)ist\n")
+                        continue
                 chapter_url = chapter_url.find('a', href=True)['href']
                 return chapter_url,chapter_num,chapter_num_2d
             else:
@@ -180,7 +184,7 @@ def get_chapter_info():
     return chapter_list,chapters,lastest_chapter,first_chapter
 
 def get_image_urls(html):
-    print("Getting image url..")
+    print("\rGetting image url..",end="", flush=True)
     script_tag = html.find('script', string=lambda x: 'ts_reader.run' in str(x))
     script_content = script_tag.string
     match = re.search(r'"source":"Server 1","images":\["(.*?)"\]', script_content)
@@ -192,38 +196,39 @@ def get_image_urls(html):
             ts_reader_content = match.group(1)
         else:
             print("\rCan't find the image url.")
+            sys.exit(1)
     ts_reader_content = urllib.parse.unquote(ts_reader_content.replace("\\", ""))
     image_urls = ts_reader_content.split('","')
-    print("\r", end="")
+    print("Done.")
     return image_urls
 
 def create_dir(directory):
     if not os.path.exists(directory):
-        print("Creating " + directory)
+        print("\rCreating", directory, end="", flush=True)
         os.makedirs(directory, exist_ok=True)
+        print("\rCreated", directory, "\t\t")
 
 
 def get_cover():
-    filename = os.path.basename(cover_url)
-    new_filename = "cover" + os.path.splitext(filename)[1]
-    cover = os.path.join(tmp_dir, title, new_filename)
-    if not os.path.exists(cover):
-        print("Downloading Cover..")
+    filename = "cover" + os.path.splitext(os.path.basename(cover_url))[1]
+    if not os.path.exists(os.path.join(tmp_dir, title, filename)):
+        print("\rDownloading Cover..", end="", flush=True)
         response = requests.get(cover_url, stream=True, headers=image_headers)
         response.raise_for_status()
 
-        with open(os.path.join(tmp_dir, title, new_filename), "wb") as file:
+        with open(os.path.join(tmp_dir, title, filename), "wb") as file:
             for chunk in response.iter_content(chunk_size=8192):
                 file.write(chunk)
+                print("Done")
 
 def chapter_image_downloader(image_headers):
     last_dl = False
-    files = os.listdir(tmp_dir + "/" + title + "/" + chapter_num_2d)
+    files = os.listdir(os.path.join(tmp_dir, title, chapter_num_2d))
     if files:
         last_dl = True
         files.sort(reverse=True)
         last_file = "{:01d}".format(int(files[0].split(".")[0]))
-    dl_num = 0
+        print("Continuing unfinished download..")
     for n, url in enumerate(image_urls):
         if last_dl == True and n < int(last_file) - 1:
             continue
@@ -231,11 +236,7 @@ def chapter_image_downloader(image_headers):
         fmt_number = "{:03d}".format(number)
         filename = os.path.basename(url)
         new_filename = str(fmt_number) + os.path.splitext(filename)[1]
-        if dl_num <= 0:
-            print("Downloading image " + new_filename)
-            dl_num = dl_num + 1
-        else:
-            print("\rDownloading image " + new_filename)
+        print("\rDownloading image " + new_filename + "..", end="", flush=True)
         response = requests.get(url, stream=True, headers=image_headers)
         response.raise_for_status()
 
@@ -281,13 +282,17 @@ headers = {
 }
 
 url = base_url + str(page_num) + m_status  + m_type + m_order
+clear_terminal()
 
+print("Geting html of " + url + "..")
 html = html_get(url)
 clear_terminal()
 
 comic_list = display_comic_list(html, page_num)
 title,comic_url,cover_url = title_selector(page_num, comic_list)
+clear_terminal()
 
+print("Geting html of " + comic_url + "..")
 html = html_get(comic_url)
 chapter_list,chapters,lastest_chapter,first_chapter = get_chapter_info()
 clear_terminal()
