@@ -204,15 +204,17 @@ def create_dir(directory):
 
 
 def get_cover():
-    print("Downloading Cover..")
-    response = requests.get(cover_url, stream=True, headers=image_headers)
-    response.raise_for_status()
-
     filename = os.path.basename(cover_url)
     new_filename = "cover" + os.path.splitext(filename)[1]
-    with open(os.path.join(tmp_dir, title, new_filename), "wb") as file:
-        for chunk in response.iter_content(chunk_size=8192):
-            file.write(chunk)
+    cover = os.path.join(tmp_dir, title, new_filename)
+    if not os.path.exists(cover):
+        print("Downloading Cover..")
+        response = requests.get(cover_url, stream=True, headers=image_headers)
+        response.raise_for_status()
+
+        with open(os.path.join(tmp_dir, title, new_filename), "wb") as file:
+            for chunk in response.iter_content(chunk_size=8192):
+                file.write(chunk)
 
 def chapter_image_downloader(image_headers):
     last_dl = False
