@@ -164,14 +164,14 @@ class MainPrompt:
                 print("Invalid input")
 
                         
-    def chapter_selector(self, tmp_dir, title, first_chapter, lastest_chapter, chapters, chapter_list):
+    def chapter_selector(self, tmp_dir, title, first_chapter, lastest_chapter, chapters, chapter_list, cover_url):
         while True:
             print("\n\n[ " + title + " ]")
             self.answer = input("Show (L)ist, select chapter to download or (C)lose the script(L/" + first_chapter + "-" + lastest_chapter + "/C): ")
             if "-" in self.answer:
-                Scrap().multi_chapter_select(tmp_dir, title, chapters, chapter_list, self.answer)
+                Scrap().multi_chapter_select(tmp_dir, title, chapters, chapter_list, self.answer, cover_url)
             elif "." in self.answer and not "-" in self.answer or self.answer.isdigit():
-                Scrap().chapter_select(tmp_dir, title, chapters, chapter_list, self.answer)
+                Scrap().chapter_select(tmp_dir, title, chapters, chapter_list, self.answer, cover_url)
             elif self.answer.lower() == "l" or self.answer.lower() == "list":
                 MainPrompt().show_chapter_list(chapters)
             elif self.answer.lower() == "c" or self.answer.lower() == "close" or self.answer.lower() == "cancel" or self.answer.lower() == "q":
@@ -193,6 +193,7 @@ class Network:
     def __init__(self):
         Argument().user_agent()
         self.user_agent = config.get("Settings", "user_agent")
+        self.tmp_dir = config.get("Settings", "tmp_dir")
         self.headers = {
                 "User-Agent": self.user_agent,
                 "Accept-Language": "en-US,en;q=0.9",
@@ -212,6 +213,16 @@ class Network:
             self.result = requests.get(url, headers=self.headers)
             self.html = BeautifulSoup(self.result.text, "html.parser")
         return self.html
+
+    def cover_downloader(self, url, title):
+        self.cover_name = "cover" + os.path.splitext(os.path.basename(url))[1]
+        self.cover = os.path.join(self.tmp_dir, title, self.cover_name)
+        if not os.path.exists(self.cover):
+            print("Downloading " + self.cover_name)
+            self.response = requests.get(url, stream=True, headers=self.headers)
+            with open(os.path.join(self.tmp_dir, title, self.cover_name), "wb") as file:
+                for data in self.response.iter_content():
+                    file.write(data)
 
     def image_downloader(self, title, chapter_num, urls):
         self.files = os.listdir(os.path.join(tmp_dir, title, chapter_num))
@@ -233,7 +244,7 @@ class Network:
             print("\rDownloading " + self.new_filename, end="", flush=True)
             with open(os.path.join(tmp_dir, title, chapter_num, self.new_filename), "wb") as file:
                 for data in self.response.iter_content():
-                    file.write (data)
+                    file.write(data)
         print("\rAll image Downloaded.")
 
 
@@ -284,7 +295,7 @@ class Scrap:
         self.first_chapter = self.chapter_list.find(class_="first-chapter")["data-num"]
         return self.chapter_list,self.chapters,self.lastest_chapter,self.first_chapter
     
-    def multi_chapter_select(self, tmp_dir, title, chapters, chapter_list, chapter_ranges):
+    def multi_chapter_select(self, tmp_dir, title, chapters, chapter_list, chapter_ranges, cover_url):
         self.ranges = chapter_ranges.split(sep="-")
         for self.num, self.chapter in enumerate(reversed(chapters)):
             self.data_num = self.chapter["data-num"]
@@ -296,6 +307,7 @@ class Scrap:
             except ValueError:
                 continue
             if float(self.data_num_striped) >= float(self.ranges[0]) and float(self.data_num_striped) <= float(self.ranges[1]):
+                Network().cover_downloader(cover_url, title)
                 print("Chapter " + self.data_num)
                 self.chapter_entry = chapter_list.find("li", {"data-num": self.data_num})
                 self.chapter_url = self.chapter_entry.find('a', href=True)['href']
@@ -310,7 +322,7 @@ class Scrap:
                 if self.num >= len(chapters):
                     return
 
-    def chapter_select(self, tmp_dir, title, chapters, chapter_list, chapter_num):
+    def chapter_select(self, tmp_dir, title, chapters, chapter_list, chapter_num, cover_url):
         for self.num, self.chapter in enumerate(reversed(chapters)):
             self.data_num = self.chapter["data-num"]
             self.data_num_striped = re.sub(r'[^0-9.]', '', self.data_num)
@@ -320,6 +332,7 @@ class Scrap:
             except ValueError:
                 continue
             if float(self.data_num_striped) == float(chapter_num):
+                Network().cover_downloader(cover_url, title)
                 print("Chapter " + self.data_num)
                 self.chapter_entry = chapter_list.find("li", {"data-num": self.data_num})
                 self.chapter_url = self.chapter_entry.find('a', href=True)['href']
@@ -436,4 +449,4 @@ comic_entry,title,comic_url,cover_url = Scrap().get_comic_info(comic_list, entry
 entry_html = Network().get_html(comic_url)
 chapter_list,chapters,lastest_chapter,first_chapter = Scrap().get_chapter_info(entry_html)
 while True:
-    MainPrompt().chapter_selector(tmp_dir, title, first_chapter, lastest_chapter, chapters, chapter_list)
+    MainPrompt().chapter_selector(tmp_dir, title, first_chapter, lastest_chapter, chapters, chapter_list, cover_url)
