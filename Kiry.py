@@ -8,6 +8,7 @@ import urllib
 import os
 import shutil
 import zipfile
+import tqdm
 
 
 
@@ -162,6 +163,7 @@ class MainPrompt:
             else:
                 print("Invalid input")
 
+                        
     def chapter_selector(self, tmp_dir, title, first_chapter, lastest_chapter, chapters, chapter_list):
         while True:
             print("\n\n[ " + title + " ]")
@@ -171,16 +173,20 @@ class MainPrompt:
             elif "." in self.answer and not "-" in self.answer or self.answer.isdigit():
                 Scrap().chapter_select(tmp_dir, title, chapters, chapter_list, self.answer)
             elif self.answer.lower() == "l" or self.answer.lower() == "list":
-                for self.num, self.chapter in enumerate(chapters):
-                    self.chapter_num = self.chapter.find(class_="chapternum").string
-                    if self.num % 5:
-                        print(self.chapter_num, end="\t")
-                    else:
-                        print(self.chapter_num, end="\n")
+                MainPrompt().show_chapter_list(chapters)
             elif self.answer.lower() == "c" or self.answer.lower() == "close" or self.answer.lower() == "cancel" or self.answer.lower() == "q":
                 sys.exit(0)
             else:
                 print("Invalid input")
+
+    def show_chapter_list(self, chapters):
+        for self.num, self.chapter in enumerate(chapters):
+            self.chapter_num = self.chapter.find(class_="chapternum").string
+            if self.num % 5:
+                print(self.chapter_num, end="\t")
+            else:
+                print(self.hapter_num, end="\n")
+        return
 
 
 class Network:
@@ -207,8 +213,8 @@ class Network:
             self.html = BeautifulSoup(self.result.text, "html.parser")
         return self.html
 
-    def image_downloader(self, title, chapter_num_2d, urls):
-        self.files = os.listdir(os.path.join(tmp_dir, title, chapter_num_2d))
+    def image_downloader(self, title, chapter_num, urls):
+        self.files = os.listdir(os.path.join(tmp_dir, title, chapter_num))
         self.last_dl = False
         if self.files:
             self.last_dl = True
@@ -222,13 +228,12 @@ class Network:
             self.fmt_number = "{:03d}".format(self.number)
             self.filename = os.path.basename(url)
             self.new_filename = str(self.fmt_number) + os.path.splitext(self.filename)[1]
-            print("\rDownloading " + self.new_filename, end="", flush=True)
             self.response = requests.get(url, stream=True, headers=self.headers)
-            self.response.raise_for_status()
-    
-            with open(os.path.join(tmp_dir, title, chapter_num_2d, self.new_filename), "wb") as file:
+
+            print("\rDownloading " + self.new_filename, end="", flush=True)
+            with open(os.path.join(tmp_dir, title, chapter_num, self.new_filename), "wb") as file:
                 for data in self.response.iter_content():
-                    file.write(data)
+                    file.write (data)
         print("\rAll image Downloaded.")
 
 
@@ -274,15 +279,15 @@ class Scrap:
 
     def get_chapter_info(self, html):
         self.chapter_list = html.find(class_="eplister")
-        self.chapters = reversed(self.chapter_list.find_all("li", {"data-num": True}))
+        self.chapters = self.chapter_list.find_all("li", {"data-num": True})
         self.lastest_chapter = self.chapter_list.find("li")["data-num"]
         self.first_chapter = self.chapter_list.find(class_="first-chapter")["data-num"]
         return self.chapter_list,self.chapters,self.lastest_chapter,self.first_chapter
     
     def multi_chapter_select(self, tmp_dir, title, chapters, chapter_list, chapter_ranges):
         self.ranges = chapter_ranges.split(sep="-")
-        for chapter in chapters:
-            self.data_num = chapter["data-num"]
+        for self.num, self.chapter in enumerate(reversed(chapters)):
+            self.data_num = self.chapter["data-num"]
             self.data_num_striped = re.sub(r'[^0-9.]', '', self.data_num)
             try:
                 float(self.ranges[0])
@@ -291,6 +296,7 @@ class Scrap:
             except ValueError:
                 continue
             if float(self.data_num_striped) >= float(self.ranges[0]) and float(self.data_num_striped) <= float(self.ranges[1]):
+                print("Chapter " + self.data_num)
                 self.chapter_entry = chapter_list.find("li", {"data-num": self.data_num})
                 self.chapter_url = self.chapter_entry.find('a', href=True)['href']
                 self.chapter_html = Network().get_html(self.chapter_url)
@@ -301,16 +307,12 @@ class Scrap:
                 Network().image_downloader(title, self.data_num, self.image_urls)
                 Misc().make_cbz(self.directory, self.data_num)
                 Misc.remove_after_cbz(self.directory)
+                if self.num >= len(chapters):
+                    return
 
     def chapter_select(self, tmp_dir, title, chapters, chapter_list, chapter_num):
-        if "." in chapter_num:
-            self.splited_num = chapter_num.split(sep=".")
-            self.chapter_num_d2 = self.splited_num[0].zfill(2) + '.' + self.splited_num[1]
-        else:
-            self.chapter_num_d2 = chapter_num.zfill(2)
-        for chapter in chapters:
-            print("chapter_num: ", chapter_num)
-            self.data_num = chapter["data-num"]
+        for self.num, self.chapter in enumerate(reversed(chapters)):
+            self.data_num = self.chapter["data-num"]
             self.data_num_striped = re.sub(r'[^0-9.]', '', self.data_num)
             try:
                 float(chapter_num)
@@ -318,6 +320,7 @@ class Scrap:
             except ValueError:
                 continue
             if float(self.data_num_striped) == float(chapter_num):
+                print("Chapter " + self.data_num)
                 self.chapter_entry = chapter_list.find("li", {"data-num": self.data_num})
                 self.chapter_url = self.chapter_entry.find('a', href=True)['href']
                 self.chapter_html = Network().get_html(self.chapter_url)
@@ -328,6 +331,8 @@ class Scrap:
                 Network().image_downloader(title, self.data_num, self.image_urls)
                 Misc().make_cbz(self.directory, self.data_num)
                 Misc.remove_after_cbz(self.directory)
+                if self.num >= len(chapters):
+                    return
 
     def get_image_urls(self, chapter_html):
         self.script_tag = chapter_html.find('script', string=lambda x: 'ts_reader.run' in str(x))
@@ -421,7 +426,7 @@ if istitle == False:
             url = Scrap().comic_url(comic_status, comic_type, comic_order, page_num)
 
         main_html = Network().get_html(url)
-        comic_list = Scrap().display_comic_list(main_html, page_num)
+        comic_list,max_entry = Scrap().display_comic_list(main_html, page_num)
         istitle,entry_num,page_num = MainPrompt().entry_prompt(comic_list, page_num, max_entry, issearch)
         print(entry_num)
         if istitle == True:
@@ -430,4 +435,5 @@ if istitle == False:
 comic_entry,title,comic_url,cover_url = Scrap().get_comic_info(comic_list, entry_num)
 entry_html = Network().get_html(comic_url)
 chapter_list,chapters,lastest_chapter,first_chapter = Scrap().get_chapter_info(entry_html)
-MainPrompt().chapter_selector(tmp_dir, title, first_chapter, lastest_chapter, chapters, chapter_list)
+while True:
+    MainPrompt().chapter_selector(tmp_dir, title, first_chapter, lastest_chapter, chapters, chapter_list)
