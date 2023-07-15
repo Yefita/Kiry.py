@@ -8,7 +8,7 @@ import urllib
 import os
 import shutil
 import zipfile
-import tqdm
+from tqdm import tqdm
 
 
 
@@ -185,7 +185,7 @@ class MainPrompt:
             if self.num % 5:
                 print(self.chapter_num, end="\t")
             else:
-                print(self.hapter_num, end="\n")
+                print(self.chapter_num, end="\n")
         return
 
 
@@ -218,11 +218,14 @@ class Network:
         self.cover_name = "cover" + os.path.splitext(os.path.basename(url))[1]
         self.cover = os.path.join(self.tmp_dir, title, self.cover_name)
         if not os.path.exists(self.cover):
-            print("Downloading " + self.cover_name)
             self.response = requests.get(url, stream=True, headers=self.headers)
-            with open(os.path.join(self.tmp_dir, title, self.cover_name), "wb") as file:
-                for data in self.response.iter_content():
+            self.total_size= int(self.response.headers.get('content-length', 0))
+            self.progress_bar = tqdm(total=self.total_size, unit='iB', unit_scale=True, desc="Downloading " + self.cover_name)
+            with open(self.cover, "wb") as file:
+                for data in self.response.iter_content(chunk_size=1024):
+                    self.progress_bar.update(len(data))
                     file.write(data)
+            self.progress_bar.close()
 
     def image_downloader(self, title, chapter_num, urls):
         self.files = os.listdir(os.path.join(tmp_dir, title, chapter_num))
@@ -241,11 +244,14 @@ class Network:
             self.new_filename = str(self.fmt_number) + os.path.splitext(self.filename)[1]
             self.response = requests.get(url, stream=True, headers=self.headers)
 
-            print("\rDownloading " + self.new_filename, end="", flush=True)
+            self.total_size= int(self.response.headers.get('content-length', 0))
+            self.progress_bar = tqdm(total=self.total_size, unit='iB', unit_scale=True, desc="Downloading " + self.new_filename + "(" + str(n + 1) + "/" + str(len(urls)) + ")")
+
             with open(os.path.join(tmp_dir, title, chapter_num, self.new_filename), "wb") as file:
-                for data in self.response.iter_content():
+                for data in self.response.iter_content(chunk_size=1024):
+                    self.progress_bar.update(len(data))
                     file.write(data)
-        print("\rAll image Downloaded.")
+            self.progress_bar.close()
 
 
 class Scrap:
@@ -307,7 +313,6 @@ class Scrap:
             except ValueError:
                 continue
             if float(self.data_num_striped) >= float(self.ranges[0]) and float(self.data_num_striped) <= float(self.ranges[1]):
-                Network().cover_downloader(cover_url, title)
                 print("Chapter " + self.data_num)
                 self.chapter_entry = chapter_list.find("li", {"data-num": self.data_num})
                 self.chapter_url = self.chapter_entry.find('a', href=True)['href']
@@ -316,6 +321,7 @@ class Scrap:
 
                 self.directory = os.path.join(tmp_dir, title, self.data_num)
                 Misc.make_dir(self.directory)
+                Network().cover_downloader(cover_url, title)
                 Network().image_downloader(title, self.data_num, self.image_urls)
                 Misc().make_cbz(self.directory, self.data_num)
                 Misc.remove_after_cbz(self.directory)
@@ -332,7 +338,6 @@ class Scrap:
             except ValueError:
                 continue
             if float(self.data_num_striped) == float(chapter_num):
-                Network().cover_downloader(cover_url, title)
                 print("Chapter " + self.data_num)
                 self.chapter_entry = chapter_list.find("li", {"data-num": self.data_num})
                 self.chapter_url = self.chapter_entry.find('a', href=True)['href']
@@ -341,6 +346,7 @@ class Scrap:
 
                 self.directory = os.path.join(tmp_dir, title, self.data_num)
                 Misc.make_dir(self.directory)
+                Network().cover_downloader(cover_url, title)
                 Network().image_downloader(title, self.data_num, self.image_urls)
                 Misc().make_cbz(self.directory, self.data_num)
                 Misc.remove_after_cbz(self.directory)
