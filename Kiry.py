@@ -95,7 +95,8 @@ class MainPrompt:
             self.comic_status = "hiatus"
         else:
             self.invalid = True
-            print("Invalid input:\n")
+            Misc.clear_terminal()
+            print("Invalid input.\n")
         return self.comic_status,self.invalid
     
     def get_type(self):
@@ -114,6 +115,7 @@ class MainPrompt:
             sys.exit(0)
         else:
             self.invalid = True
+            Misc.clear_terminal()
             print("Invalid Input.\n")
         return self.comic_type,self.invalid
 
@@ -134,6 +136,7 @@ class MainPrompt:
             sys.exit(0)
         else:
             self.invalid = True
+            Misc.clear_terminal()
             print("Infalid input.\n")
         return self.comic_order,self.invalid
 
@@ -165,16 +168,21 @@ class MainPrompt:
 
                         
     def chapter_selector(self, tmp_dir, title, first_chapter, lastest_chapter, chapters, chapter_list, cover_url):
+        Misc.clear_terminal()
         while True:
-            print("\n\n[ " + title + " ]")
+            print("[ " + title + " ]")
             self.answer = input("Show (L)ist, select chapter to download or (C)lose the script(L/" + first_chapter + "-" + lastest_chapter + "/C): ")
             if "-" in self.answer:
+                Misc.clear_terminal()
                 Scrap().multi_chapter_select(tmp_dir, title, chapters, chapter_list, self.answer, cover_url)
             elif "." in self.answer and not "-" in self.answer or self.answer.isdigit():
+                Misc.clear_terminal()
                 Scrap().chapter_select(tmp_dir, title, chapters, chapter_list, self.answer, cover_url)
             elif self.answer.lower() == "l" or self.answer.lower() == "list":
+                Misc.clear_terminal()
                 MainPrompt().show_chapter_list(chapters)
             elif self.answer.lower() == "c" or self.answer.lower() == "close" or self.answer.lower() == "cancel" or self.answer.lower() == "q":
+                Misc.clear_terminal()
                 sys.exit(0)
             else:
                 print("Invalid input")
@@ -252,10 +260,12 @@ class Network:
                     self.progress_bar.update(len(data))
                     file.write(data)
             self.progress_bar.close()
+        Misc.clear_terminal()
 
 
 class Scrap:
     def display_comic_list(self, html, page_num):
+        Misc.clear_terminal()
         print("Page " + str(page_num))
         self.comic_list = html.find(class_="listupd").contents
         for n, entry in enumerate(self.comic_list):
@@ -388,6 +398,8 @@ class Misc:
         if os.path.exists(chapter_directory):
             shutil.rmtree(chapter_directory, ignore_errors=True)
 
+    def clear_terminal():
+        os.system('cls' if os.name == 'nt' else 'clear')
 
 
 config = configparser.ConfigParser()
@@ -400,33 +412,41 @@ page_num = 1
 page_num = Argument().page(page_num)
 url,issearch = Argument().search(base_url, page_num)
 print(url)
+Misc.clear_terminal()
 if issearch == False:
     while True:
         comic_status,status_invalid = MainPrompt().get_status()
         if status_invalid == True:
             continue
         elif comic_status == "":
+            Misc.clear_terminal()
             break
         else:
             comic_status = "status=" + comic_status
+            Misc.clear_terminal()
             break
     while True:
         comic_type,type_invalid = MainPrompt().get_type()
         if type_invalid == True:
             continue
         elif comic_type == "":
+            Misc.clear_terminal()
             break
         else:
             comic_type = "&type=" + comic_type
+            Misc.clear_terminal()
             break
     while True:
         comic_order,order_invalid = MainPrompt().get_order()
         if order_invalid == True:
+            Misc.clear_terminal()
             continue
         elif comic_order == "":
+            Misc.clear_terminal()
             break
         else:
             comic_order = "&order=" + comic_order
+            Misc.clear_terminal()
             break
     url = Scrap().comic_url(comic_status, comic_type, comic_order, page_num)
     print(url)
