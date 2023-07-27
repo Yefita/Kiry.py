@@ -1,10 +1,10 @@
 # Kiry.py
 
-Kiry.py is a scraper for indonesian-translated-eastern-style-comics pirate site: Kiryuu, written in python.
+Kiry.py is a scraper for indonesian-translated-eastern-style-comics pirate site: <a href="https://kiryuu.id/">Kiryuu</a>, written in python.
 
 ## Instalation
 
-I write this for use on termux and not anything else. in theory it should work in anything that run lastest python3. but, its not tested.
+I write this for use on termux and linux, not anything else. in theory it should work in anything that run python3. but, its not guaranteed.
 
 
 To install this script just clone the repo:
@@ -61,7 +61,7 @@ example :
 
 For cookies use --cookie or -C the format should like this :
 
-    python3 Kiry.py --cookie "cookie-name1=cookie-value1, cookie-name2=cookie-value1"
+    python3 Kiry.py --cookie "cookie-name1=cookie-value1, cookie-name2=cookie-value2"
 
 exmple :
 
