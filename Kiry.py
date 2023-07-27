@@ -121,7 +121,7 @@ class MainPrompt:
 
 
     def get_order(self):
-        self.answer = input("Listing order(Default is Website Default).\n1. Alphabetical A-Z.\n2. Reverse-Alphabetical Z-A.\n3. New Update.\n4. Date Added.\n5. Popular.\n\nSelect listing order or (C)lose the script(c, 1-5): ")
+        self.answer = input("Listing order(Default is New Update).\n1. Alphabetical A-Z.\n2. Reverse-Alphabetical Z-A.\n3. New Update.\n4. Date Added.\n5. Popular.\n\nSelect listing order or (C)lose the script(c, 1-5): ")
         if self.answer == "1" :
             self.comic_order = "title"
         elif self.answer == "2":
@@ -194,6 +194,7 @@ class MainPrompt:
                 print(self.chapter_num, end="\t")
             else:
                 print(self.chapter_num, end="\n")
+        print("")
         return
 
 
