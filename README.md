@@ -30,6 +30,10 @@ There also some argument you can use:
       -s SEARCH, --search SEARCH
                             Search comic title
       -p PAGE, --page PAGE  Display page number of choice, instead of starting from 1st page
+      -d DIRECTORY, --directory DIRECTORY
+                        Set directory to safe the downloaded file.(Default is current directory.)
+      -D DIRECTORY, --directory-presist DIRECTORY
+                        Set directory to safe the downloaded file permanently.
       -C COOKIE, --cookie COOKIE
                             Use cookie incase of Cloudflare low level blocking. it won't work on high level. to remove cookie use "--cookie off".
       -U USER_AGENT, --user-agent USER_AGENT

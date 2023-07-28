@@ -20,10 +20,24 @@ class Argument:
         self.parser.add_argument("-v", "--version", action="version", version=self.version, help="Print version number then exit.")
         self.parser.add_argument("-s", "--search", help="Search comic title")
         self.parser.add_argument("-p", "--page", help="Display page number of choice, instead of starting from 1st page")
+        self.parser.add_argument("-d", "--directory", help="Set directory to safe the downloaded file.(Default is current directory.)")
+        self.parser.add_argument("-D", "--directory-presist", help="Set directory to safe the downloaded file permanently.")
         self.parser.add_argument("-C", "--cookie", help="Use cookie incase of Cloudflare low level blocking. it won't work on high level. to remove cookie use \"--cookie off\".")
         self.parser.add_argument("-U", "--user-agent", help="Change UA. Make sure it match with your browser(that you take the cookie from) if you use cookie. to set UA to default value use \"--user-agent default\"")
         self.args = self.parser.parse_args()
         config.read("config.ini")
+
+    def directory(self):
+        if self.args.directory:
+            self.directory = str(self.args.directory)
+        elif self.args.directory_presist:
+            config["Settings"]["tmp_dir"] = self.args.directory_presist
+            with open("config.ini", "w") as new_config:
+                config.write(new_config)
+            self.directory = str(self.args.directory_presist)
+        else:
+            self.directory = config.get("Settings", "tmp_dir")
+        return self.directory
 
     def page(self, page_num):
         if self.args.page:
@@ -202,7 +216,7 @@ class Network:
     def __init__(self):
         Argument().user_agent()
         self.user_agent = config.get("Settings", "user_agent")
-        self.tmp_dir = config.get("Settings", "tmp_dir")
+        self.tmp_dir = Argument().directory() 
         self.headers = {
                 "User-Agent": self.user_agent,
                 "Accept-Language": "en-US,en;q=0.9",
@@ -407,7 +421,7 @@ config = configparser.ConfigParser()
 config.read("config.ini")
 
 base_url = config.get("Settings", "base_url")
-tmp_dir = config.get("Settings", "tmp_dir")
+tmp_dir = Argument().directory()
 page_num = 1
 
 page_num = Argument().page(page_num)
