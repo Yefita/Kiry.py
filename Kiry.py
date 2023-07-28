@@ -15,7 +15,7 @@ from tqdm import tqdm
 class Argument:
     def __init__(self):
 
-        self.version = "Kiry.py v0.0.2-12.07.23_testing"
+        self.version = "Kiry.py v0.0.3-28.07.23_testing"
         self.parser = argparse.ArgumentParser()
         self.parser.add_argument("-v", "--version", action="version", version=self.version, help="Print version number then exit.")
         self.parser.add_argument("-s", "--search", help="Search comic title")
